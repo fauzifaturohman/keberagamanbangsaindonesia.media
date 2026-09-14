@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Media Pembelajaran: Keberagaman Bangsa Indonesia</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
         .hero-bg { background: linear-gradient(135deg, #ef4444 0%, #ffffff 100%); }
@@ -78,7 +74,6 @@
                 <div class="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-xl mb-4 text-red-600"><i class="fa-solid fa-map-marked-alt mr-2"></i>Peta Buta Indonesia</h3>
                     <div class="relative rounded-lg overflow-hidden mb-4">
-                        <!-- Ganti src dengan gambar Anda -->
                         <img src="assets/Peta Buta Indonesia.jpg" alt="Peta Buta Indonesia" class="w-full h-auto object-cover rounded-lg">
                         <div class="absolute bottom-2 right-2">
                             <button onclick="revealIslands()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow-md transition-colors">
@@ -329,10 +324,26 @@
 
                 <div id="quiz-result" class="mt-6 hidden p-4 rounded-lg text-center font-bold"></div>
 
-                <!-- Tombol Kirim ke Email (Muncul setelah kuis dikerjakan) -->
-                <button id="sendEmailBtn" onclick="sendEmail()" class="hidden w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
-                    <i class="fa-solid fa-envelope mr-2"></i> Kirim Hasil Kuis ke Email Guru
-                </button>
+                <!-- ===== TOMBOL AKSI (MUNCUL SETELAH KUIS DIKERJAKAN) ===== -->
+                <div id="actionButtons" class="hidden mt-5 space-y-3 border-t border-gray-200 pt-5">
+                    <button id="sendEmailBtn" onclick="sendEmail()"
+                        class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
+                        <i class="fa-solid fa-envelope mr-2"></i> <span id="sendEmailLabel">Kirim Hasil Kuis ke Email Guru</span>
+                    </button>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button onclick="sendWhatsApp()"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-md text-sm">
+                            <i class="fa-brands fa-whatsapp mr-2"></i> Kirim via WhatsApp
+                        </button>
+                        <button onclick="copyResult()"
+                            class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-md text-sm">
+                            <i class="fa-solid fa-copy mr-2"></i> Salin Hasil
+                        </button>
+                    </div>
+
+                    <p id="sendStatus" class="text-sm text-center text-gray-600"></p>
+                </div>
             </div>
         </div>
     </section>
@@ -346,38 +357,46 @@
         </div>
     </footer>
 
-    <!-- JavaScript untuk Interaktivitas -->
+    <!-- ================= JAVASCRIPT ================= -->
     <script>
-        // Variabel global untuk menyimpan skor dan detail jawaban
-        let studentScore = 0;
+        /* =========================================================
+           KONFIGURASI PENGIRIMAN HASIL
+           ========================================================= */
+        const EMAIL_GURU   = "fauzifaturohman@gmail.com";
+
+        // Endpoint FormSubmit (gratis, tanpa backend). Hasil kuis akan
+        // diteruskan otomatis ke EMAIL_GURU.
+        const FORM_ENDPOINT = "https://formsubmit.co/ajax/" + EMAIL_GURU;
+
+        // Nomor WhatsApp guru (format internasional tanpa "+" dan tanpa "0" di depan)
+        // GANTI dengan nomor Bapak, contoh: 6281234567890
+        const WA_GURU = "6281234567890";
+
+        /* =========================================================
+           STATE
+           ========================================================= */
+        let studentScore  = 0;
         let detailJawaban = "";
+        let quizDone      = false;
 
-        // Fungsi untuk menampilkan/menyembunyikan detail rumah adat
+        /* =========================================================
+           INTERAKSI MATERI
+           ========================================================= */
         function toggleDetail(id) {
-            const element = document.getElementById('detail-' + id);
-            if (element.classList.contains('hidden')) {
-                element.classList.remove('hidden');
-            } else {
-                element.classList.add('hidden');
-            }
+            document.getElementById('detail-' + id).classList.toggle('hidden');
         }
 
-        // Fungsi untuk menampilkan kunci jawaban peta
         function revealIslands() {
-            const list = document.getElementById('island-list');
-            if (list.classList.contains('hidden')) {
-                list.classList.remove('hidden');
-            } else {
-                list.classList.add('hidden');
-            }
+            document.getElementById('island-list').classList.toggle('hidden');
         }
 
-        // Fungsi untuk mengecek jawaban kuis
+        /* =========================================================
+           KUIS
+           ========================================================= */
         function checkQuiz() {
-            const name = document.getElementById('studentName').value.trim();
+            const name      = document.getElementById('studentName').value.trim();
             const className = document.getElementById('studentClass').value.trim();
-            
-            // Validasi input nama dan kelas
+
             if (!name || !className) {
                 alert("Mohon isi Nama Lengkap dan Kelas terlebih dahulu sebelum mengirim jawaban!");
                 return;
@@ -392,54 +411,169 @@
                 return;
             }
 
-            // Hitung Skor
+            // Hitung skor
             studentScore = 0;
             if (q1.value === 'B') studentScore++;
             if (q2.value === 'B') studentScore++;
             if (q3.value === 'B') studentScore++;
 
-            // Simpan detail jawaban untuk email
-            const q1Text = q1.nextElementSibling.innerText;
-            const q2Text = q2.nextElementSibling.innerText;
-            const q3Text = q3.nextElementSibling.innerText;
-            
-            detailJawaban = `1. ${q1Text}\n2. ${q2Text}\n3. ${q3Text}`;
+            // Simpan rincian jawaban
+            const q1Text = q1.nextElementSibling.textContent.trim();
+            const q2Text = q2.nextElementSibling.textContent.trim();
+            const q3Text = q3.nextElementSibling.textContent.trim();
 
-            // Tampilkan Hasil
+            detailJawaban =
+                "1. " + q1Text + (q1.value === 'B' ? "  [BENAR]" : "  [SALAH]") + "\n" +
+                "2. " + q2Text + (q2.value === 'B' ? "  [BENAR]" : "  [SALAH]") + "\n" +
+                "3. " + q3Text + (q3.value === 'B' ? "  [BENAR]" : "  [SALAH]");
+
+            // Tampilkan hasil
             const resultDiv = document.getElementById('quiz-result');
             resultDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            
+
             if (studentScore === 3) {
                 resultDiv.classList.add('bg-green-100', 'text-green-800');
-                resultDiv.innerHTML = `<i class="fa-solid fa-trophy mr-2"></i> Sempurna! Skor Anda: ${studentScore}/3`;
+                resultDiv.innerHTML = '<i class="fa-solid fa-trophy mr-2"></i> Sempurna! Skor Anda: ' + studentScore + '/3';
             } else {
                 resultDiv.classList.add('bg-red-100', 'text-red-800');
-                resultDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-2"></i> Skor Anda: ${studentScore}/3. Silakan pelajari kembali materinya!`;
+                resultDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i> Skor Anda: ' + studentScore + '/3. Silakan pelajari kembali materinya!';
             }
 
-            // Tampilkan tombol kirim email
-            document.getElementById('sendEmailBtn').classList.remove('hidden');
+            // Tampilkan tombol aksi & reset status
+            document.getElementById('actionButtons').classList.remove('hidden');
+            document.getElementById('sendStatus').textContent = "";
+            quizDone = true;
         }
 
-        // Fungsi untuk mengirim hasil ke email guru
-        function sendEmail() {
-            const name = document.getElementById('studentName').value.trim();
+        /* =========================================================
+           SUSUN PESAN HASIL
+           ========================================================= */
+        function buildResultText() {
+            const name      = document.getElementById('studentName').value.trim();
             const className = document.getElementById('studentClass').value.trim();
-            const emailGuru = "fauzifaturohman@gmail.com";
-            
-            // Subjek Email
-            const subject = `Hasil Kuis Pancasila - ${name} (${className})`;
-            
-            // Isi Email (menggunakan %0D%0A untuk baris baru di URL)
-            const body = `Yth. Bapak Fauzi Faturohman,\n\nBerikut adalah hasil kuis Pendidikan Pancasila saya:\n\nNama: ${name}\nKelas: ${className}\nSkor Akhir: ${studentScore}/3\n\nDetail Jawaban:\n${detailJawaban}\n\nTerima kasih.`;
-            
-            // Encode teks agar aman digunakan di URL
-            const encodedSubject = encodeURIComponent(subject);
-            const encodedBody = encodeURIComponent(body);
-            
-            // Buat link mailto dan buka
-            const mailtoLink = `mailto:${emailGuru}?subject=${encodedSubject}&body=${encodedBody}`;
-            window.location.href = mailtoLink;
+            const waktu     = new Date().toLocaleString('id-ID', {
+                dateStyle: 'full', timeStyle: 'short'
+            });
+
+            return "HASIL KUIS PENDIDIKAN PANCASILA\n" +
+                   "Makna Keberagaman dan Faktor Penyebabnya\n" +
+                   "----------------------------------------\n" +
+                   "Nama        : " + name + "\n" +
+                   "Kelas       : " + className + "\n" +
+                   "Skor Akhir  : " + studentScore + "/3\n" +
+                   "Waktu       : " + waktu + "\n" +
+                   "----------------------------------------\n" +
+                   "Detail Jawaban:\n" + detailJawaban + "\n" +
+                   "----------------------------------------\n" +
+                   "Dikirim otomatis dari Media Pembelajaran Interaktif.";
+        }
+
+        /* =========================================================
+           KIRIM EMAIL OTOMATIS (FormSubmit AJAX)
+           ========================================================= */
+        async function sendEmail() {
+            const name      = document.getElementById('studentName').value.trim();
+            const className = document.getElementById('studentClass').value.trim();
+
+            if (!name || !className) {
+                alert("Mohon isi Nama Lengkap dan Kelas terlebih dahulu!");
+                return;
+            }
+            if (!quizDone) {
+                alert("Silakan kerjakan kuis terlebih dahulu!");
+                return;
+            }
+
+            const btn    = document.getElementById('sendEmailBtn');
+            const label  = document.getElementById('sendEmailLabel');
+            const status = document.getElementById('sendStatus');
+
+            btn.disabled = true;
+            label.textContent = "Mengirim...";
+            status.className = "text-sm text-center text-gray-600";
+            status.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Sedang mengirim ke email guru...';
+
+            const waktu = new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
+
+            try {
+                const response = await fetch(FORM_ENDPOINT, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        _subject: "Hasil Kuis Pancasila - " + name + " (" + className + ")",
+                        _template: "table",
+                        _captcha: "false",
+                        "Nama Siswa": name,
+                        "Kelas": className,
+                        "Skor Akhir": studentScore + "/3",
+                        "Detail Jawaban": detailJawaban,
+                        "Waktu Pengiriman": waktu
+                    })
+                });
+
+                const data = await response.json().catch(function () { return {}; });
+
+                if (response.ok && (data.success === "true" || data.success === true)) {
+                    status.className = "text-sm text-center text-green-700 font-semibold";
+                    status.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Berhasil! Hasil kuis sudah terkirim ke email guru.';
+                    label.textContent = "Terkirim ✓";
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-green-600');
+                } else {
+                    throw new Error(data.message || "Respons tidak valid");
+                }
+            } catch (err) {
+                console.error("Gagal kirim:", err);
+                status.className = "text-sm text-center text-red-700 font-semibold";
+                status.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Pengiriman otomatis gagal (mungkin offline). Silakan gunakan tombol WhatsApp atau Salin Hasil.';
+                btn.disabled = false;
+                label.textContent = "Coba Kirim Ulang ke Email Guru";
+            }
+        }
+
+        /* =========================================================
+           ALTERNATIF 1: WHATSAPP
+           ========================================================= */
+        function sendWhatsApp() {
+            if (!quizDone) { alert("Silakan kerjakan kuis terlebih dahulu!"); return; }
+            const text = buildResultText();
+            const url  = "https://wa.me/" + WA_GURU + "?text=" + encodeURIComponent(text);
+            window.open(url, "_blank");
+        }
+
+        /* =========================================================
+           ALTERNATIF 2: SALIN HASIL KE CLIPBOARD
+           ========================================================= */
+        function copyResult() {
+            if (!quizDone) { alert("Silakan kerjakan kuis terlebih dahulu!"); return; }
+            const text = buildResultText();
+            const status = document.getElementById('sendStatus');
+
+            const done = function () {
+                status.className = "text-sm text-center text-green-700 font-semibold";
+                status.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Hasil kuis disalin. Tempel di WhatsApp/Email.';
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text, done); });
+            } else {
+                fallbackCopy(text, done);
+            }
+        }
+
+        function fallbackCopy(text, cb) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); cb(); }
+            catch (e) { alert("Gagal menyalin. Silakan salin manual:\n\n" + text); }
+            document.body.removeChild(ta);
         }
     </script>
 </body>
