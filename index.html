@@ -79,7 +79,7 @@
                     <h3 class="font-bold text-xl mb-4 text-red-600"><i class="fa-solid fa-map-marked-alt mr-2"></i>Peta Buta Indonesia</h3>
                     <div class="relative rounded-lg overflow-hidden mb-4">
                         <!-- Ganti src dengan gambar Anda -->
-                        <img src="assets/Peta Buta Indonesia.jpg" alt="Peta Buta Indonesia" class="w-full h-auto object-cover rounded-lg">
+                        <img src="assets/peta-buta.png" alt="Peta Buta Indonesia" class="w-full h-auto object-cover rounded-lg">
                         <div class="absolute bottom-2 right-2">
                             <button onclick="revealIslands()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow-md transition-colors">
                                 <i class="fa-solid fa-eye mr-1"></i> Tampilkan Nama Pulau
@@ -102,7 +102,7 @@
                 <!-- Rumah Adat -->
                 <div class="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-xl mb-4 text-red-600"><i class="fa-solid fa-home mr-2"></i>Arsitektur Rumah Adat</h3>
-                    <img src="assets/Rumah Honai dan Rumah Panggung.jpg" alt="Rumah Adat Indonesia" class="w-full h-auto object-cover rounded-lg mb-4">
+                    <img src="assets/rumah-adat.png" alt="Rumah Adat Indonesia" class="w-full h-auto object-cover rounded-lg mb-4">
                     
                     <div class="space-y-3">
                         <div class="bg-white p-3 rounded-lg border-l-4 border-red-500 shadow-sm cursor-pointer" onclick="toggleDetail('honai')">
@@ -250,6 +250,22 @@
             </div>
 
             <div id="quiz-container" class="bg-white p-8 rounded-xl shadow-md">
+                
+                <!-- Input Identitas Siswa -->
+                <div class="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-user mr-2"></i>Identitas Siswa</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                            <input type="text" id="studentName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="Masukkan nama Anda">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
+                            <input type="text" id="studentClass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="Contoh: VII A">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Soal 1 -->
                 <div class="mb-6">
                     <p class="font-semibold text-gray-800 mb-3">1. Sebutkan mata pencaharian utama masyarakat yang tinggal di dataran tinggi!</p>
@@ -308,10 +324,15 @@
                 </div>
 
                 <button onclick="checkQuiz()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
-                    <i class="fa-solid fa-paper-plane mr-2"></i> Kirim Jawaban
+                    <i class="fa-solid fa-paper-plane mr-2"></i> Kirim Jawaban & Lihat Skor
                 </button>
 
                 <div id="quiz-result" class="mt-6 hidden p-4 rounded-lg text-center font-bold"></div>
+
+                <!-- Tombol Kirim ke Email (Muncul setelah kuis dikerjakan) -->
+                <button id="sendEmailBtn" onclick="sendEmail()" class="hidden w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
+                    <i class="fa-solid fa-envelope mr-2"></i> Kirim Hasil Kuis ke Email Guru
+                </button>
             </div>
         </div>
     </section>
@@ -327,6 +348,10 @@
 
     <!-- JavaScript untuk Interaktivitas -->
     <script>
+        // Variabel global untuk menyimpan skor dan detail jawaban
+        let studentScore = 0;
+        let detailJawaban = "";
+
         // Fungsi untuk menampilkan/menyembunyikan detail rumah adat
         function toggleDetail(id) {
             const element = document.getElementById('detail-' + id);
@@ -349,6 +374,15 @@
 
         // Fungsi untuk mengecek jawaban kuis
         function checkQuiz() {
+            const name = document.getElementById('studentName').value.trim();
+            const className = document.getElementById('studentClass').value.trim();
+            
+            // Validasi input nama dan kelas
+            if (!name || !className) {
+                alert("Mohon isi Nama Lengkap dan Kelas terlebih dahulu sebelum mengirim jawaban!");
+                return;
+            }
+
             const q1 = document.querySelector('input[name="q1"]:checked');
             const q2 = document.querySelector('input[name="q2"]:checked');
             const q3 = document.querySelector('input[name="q3"]:checked');
@@ -358,21 +392,54 @@
                 return;
             }
 
-            let score = 0;
-            if (q1.value === 'B') score++;
-            if (q2.value === 'B') score++;
-            if (q3.value === 'B') score++;
+            // Hitung Skor
+            studentScore = 0;
+            if (q1.value === 'B') studentScore++;
+            if (q2.value === 'B') studentScore++;
+            if (q3.value === 'B') studentScore++;
 
+            // Simpan detail jawaban untuk email
+            const q1Text = q1.nextElementSibling.innerText;
+            const q2Text = q2.nextElementSibling.innerText;
+            const q3Text = q3.nextElementSibling.innerText;
+            
+            detailJawaban = `1. ${q1Text}\n2. ${q2Text}\n3. ${q3Text}`;
+
+            // Tampilkan Hasil
             const resultDiv = document.getElementById('quiz-result');
             resultDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
             
-            if (score === 3) {
+            if (studentScore === 3) {
                 resultDiv.classList.add('bg-green-100', 'text-green-800');
-                resultDiv.innerHTML = `<i class="fa-solid fa-trophy mr-2"></i> Sempurna! Skor Anda: ${score}/3`;
+                resultDiv.innerHTML = `<i class="fa-solid fa-trophy mr-2"></i> Sempurna! Skor Anda: ${studentScore}/3`;
             } else {
                 resultDiv.classList.add('bg-red-100', 'text-red-800');
-                resultDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-2"></i> Skor Anda: ${score}/3. Silakan coba lagi!`;
+                resultDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-2"></i> Skor Anda: ${studentScore}/3. Silakan pelajari kembali materinya!`;
             }
+
+            // Tampilkan tombol kirim email
+            document.getElementById('sendEmailBtn').classList.remove('hidden');
+        }
+
+        // Fungsi untuk mengirim hasil ke email guru
+        function sendEmail() {
+            const name = document.getElementById('studentName').value.trim();
+            const className = document.getElementById('studentClass').value.trim();
+            const emailGuru = "fauzifaturohman@gmail.com";
+            
+            // Subjek Email
+            const subject = `Hasil Kuis Pancasila - ${name} (${className})`;
+            
+            // Isi Email (menggunakan %0D%0A untuk baris baru di URL)
+            const body = `Yth. Bapak Fauzi Faturohman,\n\nBerikut adalah hasil kuis Pendidikan Pancasila saya:\n\nNama: ${name}\nKelas: ${className}\nSkor Akhir: ${studentScore}/3\n\nDetail Jawaban:\n${detailJawaban}\n\nTerima kasih.`;
+            
+            // Encode teks agar aman digunakan di URL
+            const encodedSubject = encodeURIComponent(subject);
+            const encodedBody = encodeURIComponent(body);
+            
+            // Buat link mailto dan buka
+            const mailtoLink = `mailto:${emailGuru}?subject=${encodedSubject}&body=${encodedBody}`;
+            window.location.href = mailtoLink;
         }
     </script>
 </body>
